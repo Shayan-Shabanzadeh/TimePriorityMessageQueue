@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package com.example.messages;
+
+message MyMessage {
+  string id = 1;
+  string content = 2;
+}
