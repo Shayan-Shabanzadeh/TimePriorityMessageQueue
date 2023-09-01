@@ -2,10 +2,8 @@ package ir.bontech.rabbitconsumer.service;
 
 import ir.bontech.rabbitconsumer.dto.MessageDto;
 import lombok.Getter;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
 import javax.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;

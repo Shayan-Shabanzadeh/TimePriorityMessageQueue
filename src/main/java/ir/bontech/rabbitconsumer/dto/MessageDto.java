@@ -27,6 +27,7 @@ public class MessageDto implements Comparable<MessageDto> {
     @Override
     public String toString() {
         Instant instant = Instant.ofEpochMilli(creationTimestamp);
+        long currentTime = Instant.now().toEpochMilli();
         LocalDateTime creationTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -35,6 +36,7 @@ public class MessageDto implements Comparable<MessageDto> {
                 ", content='" + content + '\'' +
                 ", creationTimestamp=" + formatter.format(creationTime) +
                 ", priority=" + priority +
+                ", calculated priority=" + calculateCompositeScore(this , currentTime)+
                 '}';
     }
 

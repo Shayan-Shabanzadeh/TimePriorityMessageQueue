@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ir.bontech.rabbitconsumer.MessageGenerator;
 import ir.bontech.rabbitconsumer.conf.RabbitConf;
 import ir.bontech.rabbitconsumer.dto.MessageDto;
+import ir.bontech.rabbitconsumer.service.MessageConsumer;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -21,9 +23,12 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 @SpringBootTest
 @Testcontainers
-@Import({RabbitConf.class})
+@SpringJUnitConfig(classes = {RabbitConf.class , MessageConsumer.class}) // Import your RabbitMQ configuration
 public class RabbitMqIntegrationTest {
 
     @Autowired
@@ -88,6 +93,29 @@ public class RabbitMqIntegrationTest {
         registry.add("spring.rabbitmq.host", rabbitContainer::getHost);
         registry.add("spring.rabbitmq.port", rabbitContainer::getAmqpPort);
     }
+    @Test
+    public void testRabbitMQComponents() {
+        assertTrue(rabbitTemplate.getConnectionFactory().getVirtualHost().startsWith("/"));
+        assertNotNull(rabbitTemplate.getExchange());
+        assertNotNull(rabbitTemplate.getRoutingKey());
+    }
+
+
+    @Test
+    public void testQueueExists() {
+        // You can use RabbitTemplate to check if the queue exists
+        boolean queueExists = Boolean.TRUE.equals(rabbitTemplate.execute(channel -> {
+            try {
+                channel.queueDeclarePassive(queueName); // Throws an exception if the queue doesn't exist
+                return true;
+            } catch (IOException e) {
+                return false;
+            }
+        }));
+
+        assertTrue(queueExists);
+    }
+
 
     @Test
     public void testSendMessagesFromJsonFileToRabbitMQ() throws IOException {
