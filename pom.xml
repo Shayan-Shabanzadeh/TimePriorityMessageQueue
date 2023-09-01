@@ -26,11 +26,24 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
+
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+<!--		&lt;!&ndash; https://mvnrepository.com/artifact/io.arivera.oss/embedded-rabbitmq &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>io.arivera.oss</groupId>-->
+<!--			<artifactId>embedded-rabbitmq</artifactId>-->
+<!--			<version>1.5.0</version>-->
+<!--		</dependency>-->
+
+
+
+
 		<dependency>
 			<groupId>org.springframework.amqp</groupId>
 			<artifactId>spring-rabbit-test</artifactId>
@@ -60,8 +73,40 @@
 			<artifactId>junit-jupiter-api</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.testcontainers/junit-jupiter -->
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>1.15.0</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>rabbitmq</artifactId>
+			<version>1.15.3</version>
+			<scope>test</scope>
+		</dependency>
 
 	</dependencies>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>testcontainers-bom</artifactId>
+				<version>1.17.1</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<build>
 		<plugins>

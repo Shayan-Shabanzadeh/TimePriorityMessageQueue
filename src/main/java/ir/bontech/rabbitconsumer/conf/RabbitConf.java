@@ -1,18 +1,24 @@
 package ir.bontech.rabbitconsumer.conf;
 
+import ir.bontech.rabbitconsumer.service.MessageConsumer;
 import org.springframework.amqp.core.*;
-import org.springframework.amqp.rabbit.annotation.Exchange;
+import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
+import org.springframework.amqp.rabbit.retry.RejectAndDontRequeueRecoverer;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.retry.RetryPolicy;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
+import org.springframework.retry.interceptor.RetryOperationsInterceptor;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 
@@ -66,6 +72,7 @@ public class RabbitConf {
 
 
     @Bean
+    @Primary
     public ConnectionFactory cachingConnectionFactory() {
         CachingConnectionFactory cachingConnectionFactory = new CachingConnectionFactory();
         cachingConnectionFactory.setHost(rabbitHost);
@@ -146,6 +153,43 @@ public class RabbitConf {
         backOffPolicy.setMultiplier(2.0); // Backoff multiplier
         backOffPolicy.setMaxInterval(10000); // Maximum interval in milliseconds
         return backOffPolicy;
+    }
+
+
+
+    @Bean
+    public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
+        return new RabbitAdmin(connectionFactory);
+    }
+
+    @Bean
+    public MessageListenerAdapter channelAdapter(MessageConsumer messageConsumer, MessageConverter messageConverter){
+        MessageListenerAdapter messageListenerAdapter = new MessageListenerAdapter(messageConsumer, "handleMessage");
+        messageListenerAdapter.setMessageConverter(messageConverter);
+
+        return messageListenerAdapter;
+    }
+
+
+    @Bean
+    public RetryOperationsInterceptor retryBackoff(){
+        return RetryInterceptorBuilder.stateless()
+                .backOffOptions(100,3.0,1000) // 100ms wait time (delay) to retry
+                .maxAttempts(3)
+                .recoverer(new RejectAndDontRequeueRecoverer()) // Callback for message that was consumed but failed all retry attempts.
+                .build();
+    }
+
+    @Bean
+    public SimpleMessageListenerContainer createMessageListenerContainer(ConnectionFactory connectionFactory
+            , @Value("${spring.rabbitmq.template.default-receive-queue}") String queueName
+            , MessageListenerAdapter messageListenerAdapter
+            , RetryOperationsInterceptor retryOperationsInterceptor){
+        SimpleMessageListenerContainer messageListenerContainer = new SimpleMessageListenerContainer(connectionFactory);
+        messageListenerContainer.addQueueNames(queueName);
+        messageListenerContainer.setMessageListener(messageListenerAdapter);
+        messageListenerContainer.setAdviceChain(retryOperationsInterceptor);
+        return messageListenerContainer;
     }
 
 

@@ -26,7 +26,6 @@ public class MessageConsumer {
         startConsumingMessages();
     }
 
-    @RabbitListener(queues = "${spring.rabbitmq.template.default-receive-queue}")
     public void handleMessage(MessageDto message) {
         // Assuming you want to prioritize based on the 'priority' field of MessageDto
         System.out.println("Consume message: " + message);
@@ -42,10 +41,10 @@ public class MessageConsumer {
             while (true) {
                 try {
                     List<MessageDto> messages = new ArrayList<>();
-                    MessageDto message = messageQueue.poll(); // Non-blocking operation
+                    MessageDto message = messageQueue.poll();
                     if (message != null) {
                         messages.add(message);
-                        messageQueue.drainTo(messages, 4); // Try to add up to 4 more messages
+                        messageQueue.drainTo(messages, 199); // Try to add up to 4 more messages
                         processMessages(messages);
                     } else {
                         Thread.sleep(1000); // Sleep for a while if there are no messages

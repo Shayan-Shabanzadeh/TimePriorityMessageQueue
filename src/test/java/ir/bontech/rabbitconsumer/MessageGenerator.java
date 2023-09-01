@@ -12,10 +12,6 @@ import java.util.Random;
 
 public class MessageGenerator {
 
-    public static void main(String[] args) {
-        List<MessageDto> messages = generateMessages(1000);
-        writeMessagesToJsonFile(messages, "messages.json");
-    }
 
     private static List<MessageDto> generateMessages(int count) {
         List<MessageDto> messages = new ArrayList<>();
@@ -34,7 +30,8 @@ public class MessageGenerator {
         return messages;
     }
 
-    private static void writeMessagesToJsonFile(List<MessageDto> messages, String fileName) {
+    public static void createAndWriteMessagesToJsonFile(String fileName) {
+        List<MessageDto> messages = generateMessages(1000);
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             objectMapper.writeValue(new File(fileName), messages);

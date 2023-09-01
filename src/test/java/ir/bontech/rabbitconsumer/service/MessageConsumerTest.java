@@ -5,17 +5,15 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
-import org.mockito.Mockito;
+import org.springframework.test.context.ActiveProfiles;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@ActiveProfiles("test")
 class MessageConsumerTest {
 
     private ExecutorService executorService;
@@ -107,8 +105,6 @@ class MessageConsumerTest {
         List<MessageDto> expectedOrder = List.of(message3, message1, message2);
         assertEquals(expectedOrder, capturedMessages);
     }
-
-
 
 
     @Test

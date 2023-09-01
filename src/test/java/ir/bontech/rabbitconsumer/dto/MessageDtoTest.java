@@ -1,10 +1,13 @@
 package ir.bontech.rabbitconsumer.dto;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
+
+@ActiveProfiles("test")
 
 class MessageDtoTest {
 
