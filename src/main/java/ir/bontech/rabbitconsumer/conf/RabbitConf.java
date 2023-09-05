@@ -12,7 +12,10 @@ import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.amqp.rabbit.retry.RejectAndDontRequeueRecoverer;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.amqp.RabbitProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -23,20 +26,8 @@ import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 
 @Configuration
+@EnableConfigurationProperties(RabbitProperties.class)
 public class RabbitConf {
-
-    // RabbitMQ connection properties
-    @Value("${spring.rabbitmq.host}")
-    private String rabbitHost;
-
-    @Value("${spring.rabbitmq.port}")
-    private int rabbitPort;
-
-    @Value("${spring.rabbitmq.username}")
-    private String rabbitUsername;
-
-    @Value("${spring.rabbitmq.password}")
-    private String rabbitPassword;
 
     // Exchange properties
     @Value("${spring.rabbitmq.template.exchange}")
@@ -73,37 +64,38 @@ public class RabbitConf {
     @Value("${spring.rabbitmq.listener.simple.retry.max-attempts}")
     private int retryMaxAttempts;
 
+    private final RabbitProperties rabbitProperties;
+
+
+    @Autowired
+    public RabbitConf(RabbitProperties rabbitProperties) {
+        this.rabbitProperties = rabbitProperties;
+    }
+
+
     // Define a ConnectionFactory bean for RabbitMQ connection
     @Bean
     @Primary
     public ConnectionFactory cachingConnectionFactory() {
         // Configuration for the RabbitMQ connection
         CachingConnectionFactory cachingConnectionFactory = new CachingConnectionFactory();
-        cachingConnectionFactory.setHost(rabbitHost);
-        cachingConnectionFactory.setPort(rabbitPort);
-        cachingConnectionFactory.setUsername(rabbitUsername);
-        cachingConnectionFactory.setPassword(rabbitPassword);
+        cachingConnectionFactory.setHost(rabbitProperties.getHost());
+        cachingConnectionFactory.setPort(rabbitProperties.getPort());
+        cachingConnectionFactory.setUsername(rabbitProperties.getUsername());
+        cachingConnectionFactory.setPassword(rabbitProperties.getPassword());
         cachingConnectionFactory.setConnectionNameStrategy(connectionFactory -> "connection-name");
         return cachingConnectionFactory;
     }
 
-    // Define a TopicExchange bean
-    @Bean
-    public TopicExchange topicExchange() {
-        // Configuration for a TopicExchange
-        return ExchangeBuilder.topicExchange(exchangeName)
-                .durable(true)
-                .build();
-    }
 
     // Define a RabbitTemplate bean
     @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory, MessageConverter messageConverter) {
         // Configuration for the RabbitTemplate used to send messages
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-        rabbitTemplate.setMessageConverter(jsonMessageConverter());
         rabbitTemplate.setExchange(exchangeName);
         rabbitTemplate.setRoutingKey(routingKey);
+        rabbitTemplate.setMessageConverter(messageConverter);
         rabbitTemplate.setRetryTemplate(retryTemplate());
         rabbitTemplate.setConfirmCallback((correlationData, ack, cause) -> {
             // Callback for message confirmation
@@ -117,6 +109,16 @@ public class RabbitConf {
         });
         return rabbitTemplate;
     }
+
+    // Define a TopicExchange bean
+    @Bean
+    public TopicExchange topicExchange() {
+        // Configuration for a TopicExchange
+        return ExchangeBuilder.topicExchange(exchangeName)
+                .durable(true)
+                .build();
+    }
+
 
     // Define a Queue bean
     @Bean
@@ -170,13 +172,15 @@ public class RabbitConf {
     }
 
 
+    // Define RabbitAdmin bean
     @Bean
     public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
         return new RabbitAdmin(connectionFactory);
     }
 
+    // Define MessageListenerAdapter bean
     @Bean
-    public MessageListenerAdapter channelAdapter(MessageConsumer messageConsumer, MessageConverter messageConverter) {
+    public MessageListenerAdapter messageListenerAdapter(MessageConsumer messageConsumer, MessageConverter messageConverter) {
         MessageListenerAdapter messageListenerAdapter = new MessageListenerAdapter(messageConsumer, "handleMessage");
         messageListenerAdapter.setMessageConverter(messageConverter);
         return messageListenerAdapter;
@@ -185,6 +189,7 @@ public class RabbitConf {
     // Define a RetryOperationsInterceptor bean for message retry with advice chain
     @Bean
     public RetryOperationsInterceptor retryBackoff() {
+        //TODO  Configure  retry interceptor here
         return RetryInterceptorBuilder.stateless()
                 .backOffOptions(100, 3.0, 1000) // 100ms wait time (delay) to retry
                 .maxAttempts(3)
@@ -195,7 +200,7 @@ public class RabbitConf {
 
     // Define a SimpleMessageListenerContainer bean for consuming messages
     @Bean
-    public SimpleMessageListenerContainer createMessageListenerContainer(ConnectionFactory connectionFactory
+    public SimpleMessageListenerContainer messageListenerContainer(ConnectionFactory connectionFactory
             , @Value("${spring.rabbitmq.template.default-receive-queue}") String queueName
             , MessageListenerAdapter messageListenerAdapter
             , RetryOperationsInterceptor retryOperationsInterceptor) {

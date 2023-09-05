@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,6 +27,8 @@ public class RabbitConfTest {
     @Autowired
     private RabbitConf rabbitConf;
 
+    @Autowired
+    private MessageConverter messageConverter;
 
     @Mock
     private RabbitTemplate rabbitTemplate;
@@ -33,34 +36,6 @@ public class RabbitConfTest {
 
     @Container
     static RabbitMQContainer rabbitContainer;
-
-    @BeforeAll
-    static void setUpContainer() {
-        rabbitContainer = new RabbitMQContainer("rabbitmq:3.8-management-alpine")
-                .withReuse(true);
-        rabbitContainer.start(); // Start the RabbitMQ container
-
-        // Dynamically get the container's host and port
-        String rabbitHost = rabbitContainer.getHost();
-        int rabbitPort = rabbitContainer.getMappedPort(5672); // RabbitMQ default port
-
-        // Set the properties for Spring RabbitMQ to use the container's host and port
-        System.setProperty("spring.rabbitmq.host", rabbitHost);
-        System.setProperty("spring.rabbitmq.port", String.valueOf(rabbitPort));
-    }
-
-//    @DynamicPropertySource
-//    static void configure(DynamicPropertyRegistry registry) {
-//        registry.add("spring.rabbitmq.host", rabbitContainer::getHost);
-//        registry.add("spring.rabbitmq.port", rabbitContainer::getAmqpPort);
-//    }
-
-
-    @BeforeEach
-    public void setup() {
-        MockitoAnnotations.openMocks(this); // Initialize the mock annotations
-    }
-
 
     @Value("${spring.rabbitmq.template.exchange}")
     private String exchangeName;
@@ -95,6 +70,33 @@ public class RabbitConfTest {
     @Value("${spring.rabbitmq.listener.simple.retry.max-attempts}")
     private int retryMaxAttempts;
 
+    @BeforeAll
+    static void setUpContainer() {
+        rabbitContainer = new RabbitMQContainer("rabbitmq:3.8-management-alpine")
+                .withReuse(true);
+        rabbitContainer.start(); // Start the RabbitMQ container
+
+        // Dynamically get the container's host and port
+        String rabbitHost = rabbitContainer.getHost();
+        int rabbitPort = rabbitContainer.getMappedPort(5672); // RabbitMQ default port
+
+        // Set the properties for Spring RabbitMQ to use the container's host and port
+        System.setProperty("spring.rabbitmq.host", rabbitHost);
+        System.setProperty("spring.rabbitmq.port", String.valueOf(rabbitPort));
+    }
+
+//    @DynamicPropertySource
+//    static void configure(DynamicPropertyRegistry registry) {
+//        registry.add("spring.rabbitmq.host", rabbitContainer::getHost);
+//        registry.add("spring.rabbitmq.port", rabbitContainer::getAmqpPort);
+//    }
+
+
+    @BeforeEach
+    public void setup() {
+        MockitoAnnotations.openMocks(this); // Initialize the mock annotations
+    }
+
     @Test
     public void testMyQueueProperties() {
         // Test properties of the myQueue bean
@@ -104,7 +106,7 @@ public class RabbitConfTest {
 
     @Test
     public void testRabbitTemplateProperties() {
-        Assertions.assertNotNull(rabbitConf.rabbitTemplate(null));
+        Assertions.assertNotNull(rabbitConf.rabbitTemplate(null, messageConverter));
     }
 
     @Test
