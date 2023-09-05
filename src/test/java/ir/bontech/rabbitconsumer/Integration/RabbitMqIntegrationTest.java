@@ -1,16 +1,19 @@
 package ir.bontech.rabbitconsumer.Integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ir.bontech.rabbitconsumer.MessageGenerator;
 import ir.bontech.rabbitconsumer.conf.RabbitConf;
 import ir.bontech.rabbitconsumer.dto.MessageDto;
 import ir.bontech.rabbitconsumer.service.MessageConsumer;
+import ir.bontech.rabbitconsumer.uitls.MessageGenerator;
+import ir.bontech.rabbitconsumer.uitls.TestMessageConsumer;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
@@ -28,11 +31,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 @Testcontainers
-@SpringJUnitConfig(classes = {RabbitConf.class , MessageConsumer.class}) // Import your RabbitMQ configuration
+@SpringJUnitConfig(classes = {RabbitConf.class, TestMessageConsumer.class}) // Import your RabbitMQ configuration
 public class RabbitMqIntegrationTest {
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
+    @Autowired
+    private MessageConsumer messageConsumer;
 
     @Value("${spring.rabbitmq.host}")
     private String rabbitMqHost;
@@ -81,7 +86,7 @@ public class RabbitMqIntegrationTest {
     private int retryMaxAttempts;
 
 
-    final ObjectMapper objectMapper = new ObjectMapper();
+
 
     @Container
     static RabbitMQContainer rabbitContainer = new RabbitMQContainer("rabbitmq:3.8-management-alpine")
@@ -93,6 +98,18 @@ public class RabbitMqIntegrationTest {
         registry.add("spring.rabbitmq.host", rabbitContainer::getHost);
         registry.add("spring.rabbitmq.port", rabbitContainer::getAmqpPort);
     }
+
+    @AfterAll
+    static void tearDown() {
+
+        System.out.println(rabbitContainer.getLogs());
+
+        if (rabbitContainer.isRunning()) {
+            rabbitContainer.stop();
+            rabbitContainer.close();
+        }
+    }
+
     @Test
     public void testRabbitMQComponents() {
         assertTrue(rabbitTemplate.getConnectionFactory().getVirtualHost().startsWith("/"));
@@ -118,21 +135,16 @@ public class RabbitMqIntegrationTest {
 
 
     @Test
-    public void testSendMessagesFromJsonFileToRabbitMQ() throws IOException {
-        MessageGenerator.createAndWriteMessagesToJsonFile("messages.json");
-        List<MessageDto> messages = readMessagesFromJsonFile("./messages.json");
+    public void testSendMessagesFromJsonFileToRabbitMQ() throws IOException, InterruptedException {
+        var messages = MessageGenerator.generateMessages(1000);
 
         for (MessageDto message : messages) {
             rabbitTemplate.convertAndSend(exchangeName, "", message);
         }
 
+        Thread.sleep(20000);
     }
 
-
-    private List<MessageDto> readMessagesFromJsonFile(String fileName) throws IOException {
-        File file = new File(fileName);
-        return Arrays.asList(objectMapper.readValue(file, MessageDto[].class));
-    }
 
 }
 
