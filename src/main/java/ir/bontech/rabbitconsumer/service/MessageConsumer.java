@@ -30,7 +30,7 @@ public class MessageConsumer {
     private static final Logger logger = LoggerFactory.getLogger(MessageConsumer.class);
 
 
-    public MessageConsumer(int threadPoolSize){
+    public MessageConsumer(int threadPoolSize) {
         this.threadPoolSize = threadPoolSize;
     }
 
@@ -59,10 +59,13 @@ public class MessageConsumer {
                     MessageDto message = messageQueue.poll();
                     if (message != null) {
                         messages.add(message);
-                        messageQueue.drainTo(messages, 199); // Try to add up to 4 more messages
+                        messageQueue.drainTo(messages, 199); // Try to add up to 199 more messages
                         processMessages(messages);
                     } else {
-                        Thread.sleep(1000); // Sleep for a while if there are no messages
+                        synchronized (messageQueue) {
+                            // Wait for a notification when a message is added to the queue
+                            messageQueue.wait(1000); // Wait for up to 1 second
+                        }
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -71,7 +74,6 @@ public class MessageConsumer {
             }
         });
     }
-
 
 
     //Method for processing messages
