@@ -25,30 +25,35 @@ import org.springframework.retry.support.RetryTemplate;
 @Configuration
 public class RabbitConf {
 
+    // RabbitMQ connection properties
     @Value("${spring.rabbitmq.host}")
     private String rabbitHost;
 
     @Value("${spring.rabbitmq.port}")
     private int rabbitPort;
+
     @Value("${spring.rabbitmq.username}")
     private String rabbitUsername;
 
     @Value("${spring.rabbitmq.password}")
     private String rabbitPassword;
 
+    // Exchange properties
     @Value("${spring.rabbitmq.template.exchange}")
     private String exchangeName;
 
+    // Queue properties
     @Value("${spring.rabbitmq.template.default-receive-queue}")
     private String queueName;
 
     @Value("${spring.rabbitmq.queue.type}")
     private String queueType;
 
-
+    // Routing key
     @Value("${spring.rabbitmq.template.routing-key}")
     private String routingKey;
 
+    // Listener properties
     @Value("${spring.rabbitmq.listener.simple.auto-startup}")
     private boolean autoStartup;
 
@@ -61,8 +66,6 @@ public class RabbitConf {
     @Value("${spring.rabbitmq.listener.simple.prefetch}")
     private int prefetchCount;
 
-    @Value("${spring.rabbitmq.listener.simple.retry.enabled}")
-    private boolean retryEnabled;
 
     @Value("${spring.rabbitmq.listener.simple.retry.initial-interval}")
     private long retryInitialInterval;
@@ -70,10 +73,11 @@ public class RabbitConf {
     @Value("${spring.rabbitmq.listener.simple.retry.max-attempts}")
     private int retryMaxAttempts;
 
-
+    // Define a ConnectionFactory bean for RabbitMQ connection
     @Bean
     @Primary
     public ConnectionFactory cachingConnectionFactory() {
+        // Configuration for the RabbitMQ connection
         CachingConnectionFactory cachingConnectionFactory = new CachingConnectionFactory();
         cachingConnectionFactory.setHost(rabbitHost);
         cachingConnectionFactory.setPort(rabbitPort);
@@ -83,53 +87,62 @@ public class RabbitConf {
         return cachingConnectionFactory;
     }
 
-
+    // Define a TopicExchange bean
     @Bean
     public TopicExchange topicExchange() {
+        // Configuration for a TopicExchange
         return ExchangeBuilder.topicExchange(exchangeName)
                 .durable(true)
                 .build();
     }
 
-
+    // Define a RabbitTemplate bean
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
+        // Configuration for the RabbitTemplate used to send messages
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(jsonMessageConverter());
         rabbitTemplate.setExchange(exchangeName);
         rabbitTemplate.setRoutingKey(routingKey);
         rabbitTemplate.setRetryTemplate(retryTemplate());
         rabbitTemplate.setConfirmCallback((correlationData, ack, cause) -> {
+            // Callback for message confirmation
             if (ack) {
                 // Handle successful message confirmation
-                System.out.println("failed to send message");
+                System.out.println("Message send successfully");
             } else {
                 // Handle failed message confirmation
-                System.out.println("message send successfully");
+                System.out.println("Failed to send message");
             }
         });
         return rabbitTemplate;
     }
 
+    // Define a Queue bean
     @Bean
     public Queue myQueue() {
+        // Configuration for a RabbitMQ queue
         return QueueBuilder.durable(queueName)
                 .withArgument("x-queue-type", queueType)
                 .build();
     }
 
+    // Define a Binding bean
     @Bean
     public Binding queueBinding() {
+        // Configuration for binding the queue to the exchange
         return BindingBuilder.bind(myQueue())
                 .to(topicExchange())
                 .with(routingKey); // You can use wildcards in the routing key pattern
     }
 
+    // Define a MessageConverter bean for JSON messages
     @Bean
     public MessageConverter jsonMessageConverter() {
         return new Jackson2JsonMessageConverter();
     }
 
+    // Define a RetryTemplate bean for message retry
     @Bean
     public RetryTemplate retryTemplate() {
         RetryTemplate retryTemplate = new RetryTemplate();
@@ -138,7 +151,7 @@ public class RabbitConf {
         return retryTemplate;
     }
 
-
+    // Define a RetryPolicy bean for simple retry logic
     @Bean
     public RetryPolicy simpleRetryPolicy() {
         SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
@@ -146,6 +159,7 @@ public class RabbitConf {
         return retryPolicy;
     }
 
+    // Define an ExponentialBackOffPolicy bean for backoff intervals
     @Bean
     public ExponentialBackOffPolicy exponentialBackOffPolicy() {
         ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
@@ -156,41 +170,46 @@ public class RabbitConf {
     }
 
 
-
     @Bean
     public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
         return new RabbitAdmin(connectionFactory);
     }
 
     @Bean
-    public MessageListenerAdapter channelAdapter(MessageConsumer messageConsumer, MessageConverter messageConverter){
+    public MessageListenerAdapter channelAdapter(MessageConsumer messageConsumer, MessageConverter messageConverter) {
         MessageListenerAdapter messageListenerAdapter = new MessageListenerAdapter(messageConsumer, "handleMessage");
         messageListenerAdapter.setMessageConverter(messageConverter);
-
         return messageListenerAdapter;
     }
 
-
+    // Define a RetryOperationsInterceptor bean for message retry with advice chain
     @Bean
-    public RetryOperationsInterceptor retryBackoff(){
+    public RetryOperationsInterceptor retryBackoff() {
         return RetryInterceptorBuilder.stateless()
-                .backOffOptions(100,3.0,1000) // 100ms wait time (delay) to retry
+                .backOffOptions(100, 3.0, 1000) // 100ms wait time (delay) to retry
                 .maxAttempts(3)
                 .recoverer(new RejectAndDontRequeueRecoverer()) // Callback for message that was consumed but failed all retry attempts.
                 .build();
     }
 
+    // Define a SimpleMessageListenerContainer bean for consuming messages
     @Bean
     public SimpleMessageListenerContainer createMessageListenerContainer(ConnectionFactory connectionFactory
             , @Value("${spring.rabbitmq.template.default-receive-queue}") String queueName
             , MessageListenerAdapter messageListenerAdapter
-            , RetryOperationsInterceptor retryOperationsInterceptor){
+            , RetryOperationsInterceptor retryOperationsInterceptor) {
         SimpleMessageListenerContainer messageListenerContainer = new SimpleMessageListenerContainer(connectionFactory);
         messageListenerContainer.addQueueNames(queueName);
         messageListenerContainer.setMessageListener(messageListenerAdapter);
         messageListenerContainer.setAdviceChain(retryOperationsInterceptor);
+        messageListenerContainer.setAcknowledgeMode(AcknowledgeMode.valueOf(acknowledgeMode));
+        messageListenerContainer.setAutoStartup(autoStartup);
+        messageListenerContainer.setConcurrentConsumers(consumersPerQueue);
+        messageListenerContainer.setPrefetchCount(prefetchCount);
+        messageListenerContainer.setDeclarationRetries(retryMaxAttempts);
+        messageListenerContainer.setRetryDeclarationInterval(retryInitialInterval);
         return messageListenerContainer;
     }
 
-
 }
+
