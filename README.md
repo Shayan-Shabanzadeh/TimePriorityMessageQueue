@@ -14,7 +14,6 @@ The Rabbit Consumer Service is a Spring Boot application designed to consume and
 6. [Dependencies](#dependencies)
 7. [Testing](#testing)
 8. [Contributing](#contributing)
-9. [License](#license)
 
 ## Project Overview
 
