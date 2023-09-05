@@ -1,6 +1,7 @@
 package ir.bontech.rabbitconsumer.conf;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -11,6 +12,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.RabbitMQContainer;
+import org.testcontainers.junit.jupiter.Container;
 
 
 @SpringBootTest
@@ -28,11 +33,25 @@ public class RabbitConfTest {
     private RabbitTemplate rabbitTemplate;
 
 
+    @Container
+    static RabbitMQContainer rabbitContainer = new RabbitMQContainer("rabbitmq:3.8-management-alpine")
+            .withReuse(true);
+
+    @BeforeAll
+    static void setUpContainer() {
+        rabbitContainer.start(); // Start the RabbitMQ container
+    }
+
+    @DynamicPropertySource
+    static void configure(DynamicPropertyRegistry registry) {
+        registry.add("spring.rabbitmq.host", rabbitContainer::getHost);
+        registry.add("spring.rabbitmq.port", rabbitContainer::getAmqpPort);
+    }
+
+
     @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this); // Initialize the mock annotations
-//        rabbitConf.setRabbitTemplate(rabbitTemplate); // Inject the mock RabbitTemplate
-
     }
 
 
