@@ -4,7 +4,6 @@ import ir.bontech.rabbitconsumer.dto.MessageDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -22,12 +21,9 @@ class MessageConsumerTest {
 
     private MessageConsumer messageConsumer;
 
-    @Value("${messageDto.priorityIncreaseTimeWindowSeconds:60}")
-    private int priorityIncreaseTimeWindowSeconds;
 
     @BeforeEach
     void setUp() {
-        MessageDto.setTimeWindowSeconds(priorityIncreaseTimeWindowSeconds);
         messageConsumer = new MessageConsumer(5); // Create an instance of the actual class
         messageConsumer.init(); // Initialize the messageConsumer
     }
