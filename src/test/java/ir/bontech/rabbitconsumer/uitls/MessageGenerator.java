@@ -14,13 +14,13 @@ public class MessageGenerator {
         List<MessageDto> messages = new ArrayList<>();
         Random random = new Random();
 
+
         for (int i = 0; i < count; i++) {
-            MessageDto message = MessageDto.builder()
-                    .id(String.valueOf(i + 1))
-                    .content("Content " + (i + 1))
-                    .creationTimestamp(Instant.now().toEpochMilli() - random.nextInt(3600000)) // Within the last hour
-                    .priority(random.nextInt(10) + 1) // Priority between 1 and 10
-                    .build();
+            MessageDto message = new MessageDto(
+                    String.valueOf(i + 1),
+                    "Content " + (i + 1),
+                    Instant.now().toEpochMilli() - random.nextInt(3600000),
+                    random.nextInt(10) + 1);
             messages.add(message);
         }
 
