@@ -46,7 +46,6 @@ public class MessageConsumer {
     //Method to consume message from Rabbit
     public void handleMessage(MessageDto message) {
         logger.info("Consume message: {}", message);
-
         messageQueue.add(message);
     }
 
