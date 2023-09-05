@@ -1,6 +1,8 @@
 package ir.bontech.rabbitconsumer.dto;
 
 import lombok.*;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -12,13 +14,21 @@ import java.time.format.DateTimeFormatter;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@Component
 public class MessageDto implements Comparable<MessageDto> {
+
+
+    private static long timeWindowSeconds;
+
+    @Value("${messageDto.priorityIncreaseTimeWindowSeconds:60}")
+    public static void setTimeWindowSeconds(long timeWindowSeconds) {
+        MessageDto.timeWindowSeconds = timeWindowSeconds;
+    }
+
     private String id;
     private String content;
     private long creationTimestamp;
     private int priority;
-
-    private static final long TIME_WINDOW = 60 * 1000; // 2 minutes in milliseconds
 
 
     @Override
@@ -39,7 +49,7 @@ public class MessageDto implements Comparable<MessageDto> {
 
 
     @Override
-    public int compareTo(MessageDto other) {
+    public int compareTo(@NonNull MessageDto other) {
         Instant instant = Instant.now();
         long timeStampMillis = instant.toEpochMilli();
 
@@ -60,7 +70,8 @@ public class MessageDto implements Comparable<MessageDto> {
     }
 
     private int calculateCompositeScore(MessageDto message, long currentTime) {
-        int additional_priority = (int) ((currentTime - message.creationTimestamp) / TIME_WINDOW);
+        var timeWindowMillis = timeWindowSeconds * 1000;
+        int additional_priority = (int) ((currentTime - message.creationTimestamp) / timeWindowMillis);
         return additional_priority + message.getPriority();
     }
 

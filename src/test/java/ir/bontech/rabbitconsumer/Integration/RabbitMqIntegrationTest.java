@@ -21,14 +21,12 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@SpringJUnitConfig(classes = {RabbitConf.class, TestMessageConsumer.class}) // Import your RabbitMQ configuration
+@SpringJUnitConfig(classes = {RabbitConf.class, TestMessageConsumer.class , MessageDto.class})
 public class RabbitMqIntegrationTest {
 
     @Autowired
@@ -107,9 +105,7 @@ public class RabbitMqIntegrationTest {
             latch.countDown();
         }
         latch.await();
-        await().atMost(30, SECONDS).until(() -> getMessageCount() > 0); // Change this line
 
-        // Check if there are messages in the queue (greater than 0)
         int messageCount = getMessageCount();
         assertTrue(messageCount > 0, "Messages should be in the queue");
 

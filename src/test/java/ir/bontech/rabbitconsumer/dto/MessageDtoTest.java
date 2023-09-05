@@ -1,18 +1,30 @@
 package ir.bontech.rabbitconsumer.dto;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ActiveProfiles("test")
-
+@SpringBootTest
 class MessageDtoTest {
 
     Instant instant = Instant.now();
     long currentTime = instant.toEpochMilli();
+
+
+    @Value("${messageDto.priorityIncreaseTimeWindowSeconds:60}")
+    private int priorityIncreaseTimeWindowSeconds;
+
+    @BeforeEach
+    void setUp() {
+        MessageDto.setTimeWindowSeconds(priorityIncreaseTimeWindowSeconds);
+    }
 
     @Test
     void compareTo_HigherPriorityAndRecentTimestamp_ShouldComeFirst() {
@@ -88,7 +100,6 @@ class MessageDtoTest {
     }
 
 
-
     @Test
     void compareTo_equal_creation_time_different_priority() {
         MessageDto lowerPriorityMessage = MessageDto.builder()
@@ -115,7 +126,7 @@ class MessageDtoTest {
         MessageDto lowerPriorityMessage = MessageDto.builder()
                 .id("1")
                 .content("lowerPriority")
-                .creationTimestamp(currentTime - 5 * 60 * 1000) // 5 minutes ago
+                .creationTimestamp(currentTime - 10 * 60 * 1000) // 5 minutes ago
                 .priority(2)
                 .build();
 
@@ -125,6 +136,9 @@ class MessageDtoTest {
                 .creationTimestamp(currentTime - 2 * 60 * 1000) // 2 minutes ago
                 .priority(3)
                 .build();
+
+        System.out.println("Message1: " + lowerPriorityMessage);
+        System.out.println("Message2:" + higherPriorityMessage);
 
         int result = lowerPriorityMessage.compareTo(higherPriorityMessage);
 
@@ -161,10 +175,12 @@ class MessageDtoTest {
                 .priority(2)
                 .build();
 
+        System.out.println("");
+
         MessageDto higherPriorityMessage = MessageDto.builder()
                 .id("2")
                 .content("higherPriority")
-                .creationTimestamp(currentTime - 60 * 1000) // 10 minutes ago
+                .creationTimestamp(currentTime - 60 * 1000) // 1 minutes ago
                 .priority(4)
                 .build();
 

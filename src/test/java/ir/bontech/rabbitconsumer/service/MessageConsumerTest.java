@@ -1,26 +1,33 @@
 package ir.bontech.rabbitconsumer.service;
 
 import ir.bontech.rabbitconsumer.dto.MessageDto;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 @ActiveProfiles("test")
+@SpringBootTest
 class MessageConsumerTest {
 
     private MessageConsumer messageConsumer;
 
+    @Value("${messageDto.priorityIncreaseTimeWindowSeconds:60}")
+    private int priorityIncreaseTimeWindowSeconds;
+
     @BeforeEach
     void setUp() {
+        MessageDto.setTimeWindowSeconds(priorityIncreaseTimeWindowSeconds);
         messageConsumer = new MessageConsumer(5); // Create an instance of the actual class
         messageConsumer.init(); // Initialize the messageConsumer
     }
@@ -30,7 +37,6 @@ class MessageConsumerTest {
         messageConsumer.startConsumingMessages();
         Thread.sleep(1000); // Let the consumer run for a while
         messageConsumer.stopConsumingMessages();
-        // Assert or verify as needed
     }
 
     @Test
