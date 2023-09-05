@@ -12,8 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
 
@@ -34,19 +32,28 @@ public class RabbitConfTest {
 
 
     @Container
-    static RabbitMQContainer rabbitContainer = new RabbitMQContainer("rabbitmq:3.8-management-alpine")
-            .withReuse(true);
+    static RabbitMQContainer rabbitContainer;
 
     @BeforeAll
     static void setUpContainer() {
+        rabbitContainer = new RabbitMQContainer("rabbitmq:3.8-management-alpine")
+                .withReuse(true);
         rabbitContainer.start(); // Start the RabbitMQ container
+
+        // Dynamically get the container's host and port
+        String rabbitHost = rabbitContainer.getHost();
+        int rabbitPort = rabbitContainer.getMappedPort(5672); // RabbitMQ default port
+
+        // Set the properties for Spring RabbitMQ to use the container's host and port
+        System.setProperty("spring.rabbitmq.host", rabbitHost);
+        System.setProperty("spring.rabbitmq.port", String.valueOf(rabbitPort));
     }
 
-    @DynamicPropertySource
-    static void configure(DynamicPropertyRegistry registry) {
-        registry.add("spring.rabbitmq.host", rabbitContainer::getHost);
-        registry.add("spring.rabbitmq.port", rabbitContainer::getAmqpPort);
-    }
+//    @DynamicPropertySource
+//    static void configure(DynamicPropertyRegistry registry) {
+//        registry.add("spring.rabbitmq.host", rabbitContainer::getHost);
+//        registry.add("spring.rabbitmq.port", rabbitContainer::getAmqpPort);
+//    }
 
 
     @BeforeEach

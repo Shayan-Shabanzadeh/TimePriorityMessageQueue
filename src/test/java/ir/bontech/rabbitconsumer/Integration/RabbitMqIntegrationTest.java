@@ -1,55 +1,38 @@
 package ir.bontech.rabbitconsumer.Integration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import ir.bontech.rabbitconsumer.conf.RabbitConf;
 import ir.bontech.rabbitconsumer.dto.MessageDto;
-import ir.bontech.rabbitconsumer.service.MessageConsumer;
 import ir.bontech.rabbitconsumer.uitls.MessageGenerator;
 import ir.bontech.rabbitconsumer.uitls.TestMessageConsumer;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 @SpringBootTest
-@Testcontainers
+@ActiveProfiles("test")
 @SpringJUnitConfig(classes = {RabbitConf.class, TestMessageConsumer.class}) // Import your RabbitMQ configuration
 public class RabbitMqIntegrationTest {
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
-    @Autowired
-    private MessageConsumer messageConsumer;
-
-    @Value("${spring.rabbitmq.host}")
-    private String rabbitMqHost;
-
-    @Value("${spring.rabbitmq.port}")
-    private Integer rabbitMqPort;
-
-    @Value("${spring.rabbitmq.username}")
-    private String rabbitUsername;
-
-    @Value("${spring.rabbitmq.password}")
-    private String rabbitPassword;
 
     @Value("${spring.rabbitmq.template.exchange}")
     private String exchangeName;
@@ -57,46 +40,26 @@ public class RabbitMqIntegrationTest {
     @Value("${spring.rabbitmq.template.default-receive-queue}")
     private String queueName;
 
-    @Value("${spring.rabbitmq.queue.type}")
-    private String queueType;
-
-
-    @Value("${spring.rabbitmq.template.routing-key}")
-    private String routingKey;
-
-    @Value("${spring.rabbitmq.listener.simple.auto-startup}")
-    private boolean autoStartup;
-
-    @Value("${spring.rabbitmq.listener.direct.consumers-per-queue}")
-    private int consumersPerQueue;
-
-    @Value("${spring.rabbitmq.listener.simple.acknowledge-mode}")
-    private String acknowledgeMode;
-
-    @Value("${spring.rabbitmq.listener.simple.prefetch}")
-    private int prefetchCount;
-
-    @Value("${spring.rabbitmq.listener.simple.retry.enabled}")
-    private boolean retryEnabled;
-
-    @Value("${spring.rabbitmq.listener.simple.retry.initial-interval}")
-    private long retryInitialInterval;
-
-    @Value("${spring.rabbitmq.listener.simple.retry.max-attempts}")
-    private int retryMaxAttempts;
-
-
+    @Autowired
+    private RabbitAdmin rabbitAdmin;
 
 
     @Container
-    static RabbitMQContainer rabbitContainer = new RabbitMQContainer("rabbitmq:3.8-management-alpine")
-            .withReuse(true);
+    static RabbitMQContainer rabbitContainer;
 
+    @BeforeAll
+    static void setUpContainer() {
+        rabbitContainer = new RabbitMQContainer("rabbitmq:3.8-management-alpine")
+                .withReuse(true);
+        rabbitContainer.start(); // Start the RabbitMQ container
 
-    @DynamicPropertySource
-    static void configure(DynamicPropertyRegistry registry) {
-        registry.add("spring.rabbitmq.host", rabbitContainer::getHost);
-        registry.add("spring.rabbitmq.port", rabbitContainer::getAmqpPort);
+        // Dynamically get the container's host and port
+        String rabbitHost = rabbitContainer.getHost();
+        int rabbitPort = rabbitContainer.getMappedPort(5672); // RabbitMQ default port
+
+        // Set the properties for Spring RabbitMQ to use the container's host and port
+        System.setProperty("spring.rabbitmq.host", rabbitHost);
+        System.setProperty("spring.rabbitmq.port", String.valueOf(rabbitPort));
     }
 
     @AfterAll
@@ -137,12 +100,25 @@ public class RabbitMqIntegrationTest {
     @Test
     public void testSendMessagesFromJsonFileToRabbitMQ() throws IOException, InterruptedException {
         var messages = MessageGenerator.generateMessages(1000);
+        CountDownLatch latch = new CountDownLatch(1000);
 
         for (MessageDto message : messages) {
             rabbitTemplate.convertAndSend(exchangeName, "", message);
+            latch.countDown();
         }
+        latch.await();
+        await().atMost(30, SECONDS).until(() -> getMessageCount() > 0); // Change this line
+
+        // Check if there are messages in the queue (greater than 0)
+        int messageCount = getMessageCount();
+        assertTrue(messageCount > 0, "Messages should be in the queue");
 
         Thread.sleep(20000);
+    }
+
+
+    private int getMessageCount() {
+        return Objects.requireNonNull(rabbitAdmin.getQueueInfo(queueName)).getMessageCount();
     }
 
 

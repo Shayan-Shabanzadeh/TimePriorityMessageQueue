@@ -16,6 +16,7 @@ public class TestMessageConsumer extends MessageConsumer {
     private final Map<Integer, List<Long>> queueTimeMap = new HashMap<>();
 
 
+
     @Override
     public void handleMessage(MessageDto message) {
         long queueTime = System.currentTimeMillis(); // Record the time when the message enters the queue
