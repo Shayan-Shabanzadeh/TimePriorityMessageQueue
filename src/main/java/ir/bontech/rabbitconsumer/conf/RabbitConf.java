@@ -192,6 +192,7 @@ public class RabbitConf {
                 .build();
     }
 
+
     // Define a SimpleMessageListenerContainer bean for consuming messages
     @Bean
     public SimpleMessageListenerContainer createMessageListenerContainer(ConnectionFactory connectionFactory
