@@ -58,6 +58,6 @@ class MessageControllerTest {
 
         verify(messagePublisher, times(1)).sendMessage(message);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals("Error publishing message: Some error", response.getBody());
+        assertEquals("An unexpected error occurred while publishing the message.", response.getBody());
     }
 }
