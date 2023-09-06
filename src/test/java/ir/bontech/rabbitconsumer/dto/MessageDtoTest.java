@@ -172,7 +172,6 @@ class MessageDtoTest {
                 .priority(2)
                 .priorityIncreaseTimeWindowSeconds(priorityIncreaseTimeWindowSeconds).build();
 
-        System.out.println("");
 
         MessageDto higherPriorityMessage = MessageDto.builder()
                 .id("2")

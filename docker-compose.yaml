@@ -1,11 +1,42 @@
 version: '3'
 services:
   rabbitmq:
+    container_name: rabbitmq
+    restart: on-failure
     image: "rabbitmq:3.8-management"
     ports:
-      - "5672:5672" # RabbitMQ default port
-      - "15672:15672" # RabbitMQ management UI port
+      - "4369:4369"
+      - "5671:5671"
+      - "5672:5672"
+      - "25672:25672"
+      - "15671:15671"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - ./rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      default: # Use the custom network
+        aliases:
+          - rabbitmq  # alias for the "rabbitmq" service
+
+  rabbit-consumer:
+    container_name: rabbit-consumer-service
+    restart: on-failure
+    build:
+      context: .  # The context is the current directory (where the Dockerfile is located)
+      dockerfile: Dockerfile  # Use the Dockerfile
+    ports:
+      - "8080:8080" # Map Spring Boot application port
+    depends_on:
+      - rabbitmq
+    links:
+      - rabbitmq
+    networks:
+      default: # Use the custom network
+        aliases:
+          - rabbit-consumer-service  # alias for the "rabbit-consumer" service
+    volumes:
+      - ./src/main/resources/application-docker.properties:/app/application.properties
 

@@ -4,10 +4,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,9 +28,6 @@ public class RabbitConfTest {
     @Autowired
     private MessageConverter messageConverter;
 
-    @Mock
-    private RabbitTemplate rabbitTemplate;
-
 
     @Container
     static RabbitMQContainer rabbitContainer;
@@ -43,32 +38,6 @@ public class RabbitConfTest {
     @Value("${spring.rabbitmq.template.default-receive-queue}")
     private String queueName;
 
-    @Value("${spring.rabbitmq.queue.type}")
-    private String queueType;
-
-    @Value("${spring.rabbitmq.template.routing-key}")
-    private String routingKey;
-
-    @Value("${spring.rabbitmq.listener.simple.auto-startup}")
-    private boolean autoStartup;
-
-    @Value("${spring.rabbitmq.listener.direct.consumers-per-queue}")
-    private int consumersPerQueue;
-
-    @Value("${spring.rabbitmq.listener.simple.acknowledge-mode}")
-    private String acknowledgeMode;
-
-    @Value("${spring.rabbitmq.listener.simple.prefetch}")
-    private int prefetchCount;
-
-    @Value("${spring.rabbitmq.listener.simple.retry.enabled}")
-    private boolean retryEnabled;
-
-    @Value("${spring.rabbitmq.listener.simple.retry.initial-interval}")
-    private long retryInitialInterval;
-
-    @Value("${spring.rabbitmq.listener.simple.retry.max-attempts}")
-    private int retryMaxAttempts;
 
     @BeforeAll
     static void setUpContainer() {
@@ -84,12 +53,6 @@ public class RabbitConfTest {
         System.setProperty("spring.rabbitmq.host", rabbitHost);
         System.setProperty("spring.rabbitmq.port", String.valueOf(rabbitPort));
     }
-
-//    @DynamicPropertySource
-//    static void configure(DynamicPropertyRegistry registry) {
-//        registry.add("spring.rabbitmq.host", rabbitContainer::getHost);
-//        registry.add("spring.rabbitmq.port", rabbitContainer::getAmqpPort);
-//    }
 
 
     @BeforeEach

@@ -1,11 +1,15 @@
 package ir.bontech.rabbitconsumer.service;
 
 import ir.bontech.rabbitconsumer.dto.MessageDto;
+import org.junit.Before;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.testcontainers.containers.RabbitMQContainer;
+import org.testcontainers.junit.jupiter.Container;
 
 import java.time.Instant;
 import java.util.List;
@@ -21,6 +25,24 @@ class MessageConsumerTest {
 
     private MessageConsumer messageConsumer;
 
+
+    @Container
+    static RabbitMQContainer rabbitContainer;
+
+    @BeforeAll
+    static void setUpContainer() {
+        rabbitContainer = new RabbitMQContainer("rabbitmq:3.8-management-alpine")
+                .withReuse(true);
+        rabbitContainer.start(); // Start the RabbitMQ container
+
+        // Dynamically get the container's host and port
+        String rabbitHost = rabbitContainer.getHost();
+        int rabbitPort = rabbitContainer.getMappedPort(5672); // RabbitMQ default port
+
+        // Set the properties for Spring RabbitMQ to use the container's host and port
+        System.setProperty("spring.rabbitmq.host", rabbitHost);
+        System.setProperty("spring.rabbitmq.port", String.valueOf(rabbitPort));
+    }
 
     @BeforeEach
     void setUp() {
@@ -91,7 +113,6 @@ class MessageConsumerTest {
         List<MessageDto> expectedOrder = List.of(message3, message1, message2);
         assertEquals(expectedOrder, capturedMessages);
     }
-
 
     @Test
     void testProcessMultipleMessages() throws InterruptedException {
