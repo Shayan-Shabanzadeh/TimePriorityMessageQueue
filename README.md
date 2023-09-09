@@ -13,7 +13,6 @@ The Rabbit Consumer Service is a Spring Boot application designed to consume and
 5. [Project Structure](#project-structure)
 6. [Dependencies](#dependencies)
 7. [Testing](#testing)
-8. [Contributing](#contributing)
 
 ## Project Overview
 
@@ -109,8 +108,6 @@ mvn test
 
 Additional integration tests may be required depending on your specific use case.
 
-## Contributing
 
-Contributions to this project are welcome. If you find a bug or have an enhancement in mind, please open an issue or submit a pull request.
 
 ---
